@@ -1,0 +1,8 @@
+## Installation 
+> *Dependencies will be finalized once notebooks and scripts are developed.*  
+
+To prepare your environment:  
+```bash
+git clone <your-repo-link>
+cd student-performance-regression
+pip install -r requirements.txt
