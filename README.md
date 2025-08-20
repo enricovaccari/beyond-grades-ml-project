@@ -68,22 +68,14 @@ Available features include gender, parental education, study time, attendance, f
 
 ---
 
-## 7. Ethical Considerations
-- The dataset is **anonymized and cleaned**, and released under **CC BY 4.0**, ensuring legal reusability.  
-- **Privacy and informed consent** remain important considerations given the student population.  
-- Researchers must **avoid reinforcing stereotypes** (e.g., gender, socioeconomic status).  
-- Measures such as **GPA and GradeClass may reflect grading practices or teacher bias**; predictions should be used to **support** students, not penalize them.  
-
----
-
-## 8. Limitations
+## 7. Limitations
 - **Regional scope**: Data is specific to Multan, limiting generalizability.  
 - **Missing influencing factors**: Nutrition, sleep quality, and mental health are absent.  
 - **Imperfect measures**: GPA and GradeClass are affected by subjectivity and institutional grading policies.  
 
 ---
 
-## 9. Stakeholders, Beneficiaries, and Impact
+## 8. Stakeholders, Beneficiaries, and Impact
 **Stakeholders**:  
 - School administrators (resource planning, curriculum design)  
 - Teachers (personalized support, early interventions)  
@@ -102,7 +94,7 @@ Available features include gender, parental education, study time, attendance, f
 
 ---
 
-## 10. Methodology Overview
+## 9. Methodology Overview
 The project will follow a full machine learning pipeline:  
 1. **EDA**: Explore distributions, correlations, and key patterns.  
 2. **Data Cleaning & Preprocessing**: Handle missing values, encode categorical features, scale numeric features.  
@@ -114,7 +106,7 @@ The project will follow a full machine learning pipeline:
 
 ---
 
-## 11. Next Steps
+## 10. Next Steps
 - Conduct correlation analysis and feature engineering.  
 - Implement baseline regression models.  
 - Evaluate performance and optimize models.  
@@ -122,14 +114,14 @@ The project will follow a full machine learning pipeline:
 
 ---
 
-## 12. References
+## 11. References
 - Kaggle dataset: [Student Performance Data](https://www.kaggle.com/datasets/muhammadazam121/student-performance-data)  
 - OECD (2023). *PISA Results on Equity in Education.*  
 - UNESCO (2024). *Global Education Monitoring Report.*  
 
 ---
 
-## 13. Acknowledgements
+## 12. Acknowledgements
 Dataset curated by **Muhammad Azam**, Kaggle. Licensed under **CC BY 4.0**.  
 Prepared as part of an academic project on data-driven education and sustainability.  
 
