@@ -1,4 +1,6 @@
-jupyter
-os
-gdown
-
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+scipy
