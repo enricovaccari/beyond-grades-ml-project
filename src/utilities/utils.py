@@ -19,16 +19,28 @@
 # LIBRARIES (for utils.py)
 # -------------------------------------------------------------------
 
+# --- Standard library ---
 import os
 import sys
 import shutil
 import importlib
 import subprocess
 from pathlib import Path
+from typing import Dict, Any
 
+# --- Third-party: core scientific ---
+import numpy as np
+
+# --- Third-party: scikit-learn ---
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, f_regression
+
+# --- Dynamic package import/install ---
 required_packages = ["pandas", "gdown"]
-
-loaded = {}  # dict to keep references if you want
+loaded = {}
 
 for package in required_packages:
     try:
@@ -36,14 +48,13 @@ for package in required_packages:
     except ImportError:
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-            mod = importlib.import_module(package)  # import again after install
+            mod = importlib.import_module(package)
         except subprocess.CalledProcessError:
             mod = None
-
     if mod:
         loaded[package] = mod
 
-# alias for convenience
+# Aliases for convenience
 pd = loaded.get("pandas")
 gdown = loaded.get("gdown")
 
@@ -302,3 +313,45 @@ def out_columns(dataset):
     print('columns, columns_list, numeric_cols, numeric_cols_list, categorical_cols, numeric_cols_list\n')
 
 # -----------------------------------------------------------------
+
+def save_report_md(report: Dict[str, Any], filename: str) -> Path:
+    """
+    Save a dictionary report as a Markdown file in ../outputs/reports.
+
+    Parameters
+    ----------
+    report : dict
+        The report dictionary to save.
+    filename : str
+        The file name with extension (must end with '.md').
+
+    Returns
+    -------
+    Path
+        Absolute path to the saved Markdown file.
+    """
+    if not filename.lower().endswith(".md"):
+        raise ValueError("Filename must end with '.md'")
+
+    save_path = Path("..") / "outputs" / "reports"
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    report_file = save_path / filename
+
+    def _dict_to_md(d: Dict[str, Any], level: int = 1) -> str:
+        lines = []
+        for k, v in d.items():
+            if isinstance(v, dict):
+                lines.append(f"{'#'*(level+1)} {k}")
+                lines.append(_dict_to_md(v, level+1))
+            else:
+                lines.append(f"- **{k}**: {v}")
+        return "\n".join(lines)
+
+    md_content = f"# Data Quality Report\n\n{_dict_to_md(report)}\n"
+
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write(md_content)
+
+    print(f"Report saved to: {report_file.resolve()}")
+    return report_file.resolve()
