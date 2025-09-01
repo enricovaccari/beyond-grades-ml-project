@@ -13,6 +13,7 @@ project-root/
 
 import sys
 import importlib
+import seaborn as sns
 from pathlib import Path
 
 # ---------------------------------------------------------
@@ -36,17 +37,39 @@ for p in (SRC_PATH, DATA_PATH, FEATURES_PATH, UTILS_PATH):
 # ---------------------------------------------------------
 # Core scientific stack
 # ---------------------------------------------------------
-import numpy as np
+
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from sklearn.compose import ColumnTransformer
+
+# Plotting (optional; keep lightweight usage)
+import matplotlib.pyplot as plt
+
+# Scikit-learn: preprocessing & pipelines
+from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.feature_selection import SelectKBest, f_regression
+
+
+# Scikit-learn: models & evaluation
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+
+from sklearn.model_selection import KFold, cross_validate, learning_curve, train_test_split, GridSearchCV
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score,
+    make_scorer,
+)
 
 # Plot style
 plt.style.use("default")
@@ -80,10 +103,18 @@ __all__ = [
     "pd", "np", "sns", "plt",
     "ColumnTransformer", "Pipeline", "SimpleImputer",
     "train_test_split", "StandardScaler", "OneHotEncoder",
-    "SelectKBest", "f_regression",
+    "SelectKBest", "f_regression", "clone", "KFold", "GridSearchCV",
+    "mean_squared_error", "mean_absolute_error", "r2_score", "make_scorer",
+    # models
+    "LinearRegression", "Ridge", "Lasso", "ElasticNet",
+    "DecisionTreeRegressor", "RandomForestRegressor", "GradientBoostingRegressor",
+    "SVR", "KNeighborsRegressor",
+    # local modules (if available)
+    "cleaning", "preprocessing", "splitting", "analysis", "utils",
     # paths
     "PROJECT_ROOT", "SRC_PATH", "DATA_PATH", "FEATURES_PATH", "UTILS_PATH",
 ]
+
 
 # add only available local modules
 for name, mod in {

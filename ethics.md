@@ -1,4 +1,4 @@
-# 📘 Beyond Grades – Unveiling the Factors Behind Students’ Success - Ethics
+# Beyond Grades – Unveiling the Factors Behind Students’ Success - Ethics
 
 ----------------------------------------------------------------
 Impact Certificate: Applied Machine Learning  
@@ -13,6 +13,4 @@ Student: Enrico Vaccari
 - **Privacy and informed consent** remain important considerations given the student population.  
 - Researchers must **avoid reinforcing stereotypes** (e.g., gender, socioeconomic status).  
 - Measures such as **GPA and GradeClass may reflect grading practices or teacher bias**; predictions should be used to **support** students, not penalize them.  
-
----
 
