@@ -19,13 +19,13 @@
 # LIBRARIES (for analysis.py)
 # -------------------------------------------------------------------
 import math
-from typing import List, Dict, Optional
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import shapiro
 import scipy.stats as stats
+from typing import List, Dict, Optional, Literal
 
 # -------------------------------------------------------------------
 # STYLE
@@ -630,3 +630,159 @@ def scatter_with_auto_threshold(
 
     plt.tight_layout()
     plt.show()
+
+# -----------------------------------------------------------------
+
+def correlation_ratio(cat: pd.Series, num: pd.Series) -> float:
+    """
+    Correlation ratio (η) between a categorical variable and a numeric variable.
+    
+    Parameters
+    ----------
+    cat : pd.Series
+        Categorical feature (object/category/int labels).
+    num : pd.Series
+        Numeric feature or target.
+    
+    Returns
+    -------
+    float
+        η in [0, 1]. Returns np.nan if not computable (e.g., too few valid rows).
+    
+    Notes
+    -----
+    - η measures the proportion of variance in `num` explained by group means of `cat`.
+    - Always non-negative; higher = stronger association.
+    """
+    # Drop rows with NaNs in either series (pairwise)
+    mask = cat.notna() & num.notna()
+    if mask.sum() < 3:
+        return np.nan
+
+    cat = cat[mask]
+    num = num[mask].astype(float)
+
+    # Convert categories to integer codes
+    codes, _ = pd.factorize(cat)
+    unique_codes = np.unique(codes)
+
+    y_mean = float(num.mean())
+    # Between-group sum of squares
+    ss_between = sum(
+        (num[codes == g].size) * (float(num[codes == g].mean()) - y_mean) ** 2
+        for g in unique_codes
+    )
+    # Total sum of squares
+    ss_total = float(((num - y_mean) ** 2).sum())
+
+    if ss_total <= 0:
+        return np.nan
+    return float(np.sqrt(ss_between / ss_total))
+
+# -----------------------------------------------------------------
+
+def cramers_v(x: pd.Series, y: pd.Series) -> float:
+    """
+    Cramér's V between two categorical variables.
+
+    Parameters
+    ----------
+    x, y : pd.Series
+        Categorical features (object/category/int labels).
+
+    Returns
+    -------
+    float
+        Cramér's V in [0, 1]. Returns np.nan if not computable.
+
+    Notes
+    -----
+    - Uses chi-squared test on the contingency table.
+    - Symmetric and non-negative; higher = stronger association.
+    """
+    table = pd.crosstab(x, y)
+    if table.empty:
+        return np.nan
+
+    # chi2 without Yates’ correction for stability with larger tables
+    chi2 = stats.chi2_contingency(table, correction=False)[0]
+    n = table.to_numpy().sum()
+    if n == 0:
+        return np.nan
+
+    phi2 = chi2 / n
+    r, k = table.shape
+    # Uncorrected V (simple and widely used)
+    denom = min(k - 1, r - 1)
+    if denom <= 0:
+        return np.nan
+    return float(np.sqrt(phi2 / denom))
+
+# -----------------------------------------------------------------
+
+def mixed_corr(
+    df: pd.DataFrame,
+    numeric_corr: Literal["pearson", "spearman"] = "pearson"
+) -> pd.DataFrame:
+    """
+    Compute a mixed-type association matrix across ALL columns in `df`.
+
+    Pairwise rules:
+      - numeric vs numeric   → Pearson or Spearman correlation (signed, [-1, 1])
+      - categorical vs categorical → Cramér's V (non-negative, [0, 1])
+      - categorical vs numeric → Correlation ratio η (non-negative, [0, 1])
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input data (mixed dtypes allowed).
+    numeric_corr : {"pearson", "spearman"}, default "pearson"
+        Method for numeric↔numeric correlations.
+
+    Returns
+    -------
+    pd.DataFrame
+        Square DataFrame of association strengths, indexed/columned by `df.columns`.
+
+    Notes
+    -----
+    - The matrix is symmetric by construction.
+    - Non-numeric associations are always ≥ 0 (no sign).
+    - If you plan to plot with a diverging colormap (-1→+1), keep in mind
+      that categorical-involving cells will sit on the positive side.
+    """
+    cols = df.columns.tolist()
+    n = len(cols)
+    out = pd.DataFrame(np.nan, index=cols, columns=cols, dtype=float)
+
+    # Identify column types by dtype
+    num_cols = df.select_dtypes(include="number").columns
+    cat_cols = df.select_dtypes(exclude="number").columns
+
+    # Pre-compute numeric correlation matrix once for efficiency
+    if len(num_cols) > 0:
+        num_corr = df[num_cols].corr(method=numeric_corr)
+
+    for i in range(n):
+        out.iat[i, i] = 1.0  # diagonal
+        for j in range(i + 1, n):
+            ci, cj = cols[i], cols[j]
+
+            if (ci in num_cols) and (cj in num_cols):
+                # numeric ↔ numeric
+                val = float(num_corr.loc[ci, cj])
+            elif (ci in cat_cols) and (cj in cat_cols):
+                # categorical ↔ categorical
+                val = cramers_v(df[ci], df[cj])
+            else:
+                # mixed: one categorical, one numeric
+                if ci in cat_cols:
+                    val = correlation_ratio(df[ci], df[cj])
+                else:
+                    val = correlation_ratio(df[cj], df[ci])
+
+            out.iat[i, j] = out.iat[j, i] = val
+
+    return out
+
+# -----------------------------------------------------------------

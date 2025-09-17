@@ -6,8 +6,8 @@
 # date			= 26-08-2025
 #
 # how to		= gets imported automatically from notebooks
-# dependencies	= Python 3, os, sys, shutil, pandas, pathlib
-# todos         = 
+# dependencies	= Python 3, os, sys, shutil, pandas, pathlib, typing, sklearn, gdown
+# todos         = good for now
 # 
 # license		= MIT
 # author		= Enrico Vaccari <e.vaccari99@gmail.com>
@@ -30,6 +30,7 @@ from typing import Dict, Any
 
 # --- Third-party: core scientific ---
 import numpy as np
+from scipy.stats import shapiro
 
 # --- Third-party: scikit-learn ---
 from sklearn.pipeline import Pipeline
@@ -151,7 +152,7 @@ def save_dataset(dataset, relative_path):
     else:
         raise ValueError("Unsupported file format. Use '.xlsx' or '.csv'.")
 
-    print(f"✅ File saved at: {path}")
+    print(f"File saved at: {path}")
 
 # -----------------------------------------------------------------
 
@@ -355,3 +356,53 @@ def save_report_md(report: Dict[str, Any], filename: str) -> Path:
 
     print(f"Report saved to: {report_file.resolve()}")
     return report_file.resolve()
+
+# -----------------------------------------------------------------
+
+def make_json_safe(obj):
+    """Convert numpy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    if isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, np.ndarray)):
+        return [make_json_safe(x) for x in obj]
+    return obj
+
+# -----------------------------------------------------------------
+
+def check_normality(feature_series, feature_name="Feature"):
+    """
+    Perform Shapiro-Wilk test of normality on a numeric feature.
+
+    Parameters
+    ----------
+    feature_series : pd.Series
+        Numeric feature values.
+    feature_name : str
+        Name of the feature (for printing results).
+    """
+    # Drop missing values (test requires clean data)
+    data = feature_series.dropna().values
+
+    stat, p_value = shapiro(data)
+
+    print(f"\nNormality test for '{feature_name}':")
+    print(f"Test statistic = {stat:.4f}, p-value = {p_value:.4f}")
+
+    if p_value > 0.05:
+        print("Fail to reject H0 → Data is normally distributed")
+    else:
+        print("Reject H0 → Data is not normally distributed")
+
+# -----------------------------------------------------------------
+
+def minmax(s, smin, smax):
+    """Simple min-max normalization. If no variation, return constant 0.5."""
+    return (s - smin) / (smax - smin) if smax > smin else s*0 + 0.5
+
+# -----------------------------------------------------------------

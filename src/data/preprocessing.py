@@ -13,6 +13,7 @@ from __future__ import annotations
 
 # Standard library
 from pathlib import Path
+from datetime import datetime
 from typing import Optional, Tuple, List, Dict, Any
 
 # Core scientific stack
@@ -86,6 +87,7 @@ __all__ = [
     "pd",
     "plt",
     "HAS_XGB",
+    "datetime"
 ]
 
 # -------------------------------------------------------------------
@@ -187,31 +189,33 @@ def baseline_mean_model(y_train, y_test):
 
 # -------------------------------------------------------------------
 
-def plot_model_r2(results, title="Model Comparison (R² Score)"):
-    """
-    Plot a bar chart of R² scores for models.
-    
-    Parameters
-    ----------
-    results : dict or pd.DataFrame
-        - If dict: {model_name: r2_score, ...}
-        - If DataFrame: must have columns ["Model", "R2"]
-    title : str, optional
-        Title of the plot
-    """
-    # Handle DataFrame input
-    if hasattr(results, "to_dict"):  # pandas DataFrame
-        data = dict(zip(results["Model"], results["R2"]))
-    else:
-        data = results  # already a dict
-    
-    plt.figure(figsize=(9,5))
-    plt.bar(data.keys(), data.values(), color="skyblue")
-    plt.title(title)
-    plt.ylabel("R² Score")
-    plt.xticks(rotation=30, ha="right")
-    plt.axhline(0, color="red", linestyle="--", linewidth=1, label="Baseline (R²=0)")
-    plt.legend()
+# Grouped bar plot with optional zoom
+def grouped_bar(model_order, variant_order, metric, title=None, zoom=False, margin=0.02):
+    x = np.arange(len(model_order))
+    width = 0.20
+    offset = (len(variant_order)-1)/2 * width
+
+    plt.figure(figsize=(11, 5))
+    mins, maxs = [], []
+
+    for i, (var, col) in enumerate(zip(variant_order, pastel)):
+        vals = (combo[combo["Variant"]==var]
+                .set_index("Model")
+                .loc[model_order, metric]
+                .values)
+        xi = x + (i*width - offset)
+        plt.bar(xi, vals, width, label=var, color=col, edgecolor="none", alpha=0.9)
+        mins.append(vals.min()); maxs.append(vals.max())
+
+    plt.xticks(x, model_order, rotation=30, ha="right")
+    plt.ylabel(metric)
+    plt.title(title or f"{metric} by Model and Dataset")
+    plt.legend(title="Dataset")
+    if zoom:
+        lo, hi = min(mins), max(maxs)
+        pad = (hi - lo) * margin if hi > lo else 0.01
+        plt.ylim(lo - pad, hi + pad)
+    plt.tight_layout()
     plt.show()
 
 # -------------------------------------------------------------------
@@ -244,20 +248,7 @@ def run_model_suite(
             "RandomForest": RandomForestRegressor(n_estimators=300, random_state=42),
             "GradientBoosting": GradientBoostingRegressor(random_state=42),
             "SVR": SVR(kernel="rbf", C=1.0, epsilon=0.1),
-            "KNN": KNeighborsRegressor(n_neighbors=5),
-            # XGBoost (safe settings, can tune later)
-            "XGBoost": XGBRegressor(
-                n_estimators=300,
-                learning_rate=0.05,
-                max_depth=4,
-                subsample=0.9,
-                colsample_bytree=0.9,
-                reg_lambda=1.0,
-                reg_alpha=0.0,
-                random_state=42,
-                tree_method="hist",    # quick on CPU
-                n_jobs=-1
-            ),
+            "KNN": KNeighborsRegressor(n_neighbors=5)
         }
 
     kf = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
@@ -402,9 +393,130 @@ def tune_model(
     best_params = grid.best_params_
     best_rmse   = -grid.best_score_
 
-    print("✅ Best params:", best_params)
-    print(f"✅ Best CV RMSE: {best_rmse:.6f}")
+    print("Best params:", best_params)
+    print(f"Best CV RMSE: {best_rmse:.6f}")
 
     return best_pipe, best_params, results_df, grid
+
+# -------------------------------------------------------------------
+
+def make_residuals_df(pipeline, X, y_true):
+    y_true = np.ravel(y_true)
+    y_pred = pipeline.predict(X)
+    resid  = y_true - y_pred
+    return pd.DataFrame({"y_true": y_true, "y_pred": y_pred, "residual": resid})
+
+# -------------------------------------------------------------------
+
+def evaluate_by_group(pipeline, X, y, group_col):
+    """
+    Evaluate model errors within subgroups of the dataset.
+
+    For a given categorical column (group_col), the function:
+      - predicts target values using the fitted pipeline
+      - computes residuals (errors) for each observation
+      - groups data by the subgroup values
+      - calculates RMSE, MAE, and the number of samples per subgroup
+
+    Parameters
+    ----------
+    pipeline : sklearn Pipeline
+        A fitted pipeline or model with a .predict() method.
+    X : pd.DataFrame
+        Feature matrix (must include group_col).
+    y : array-like
+        True target values.
+    group_col : str
+        Column name in X used to define subgroups.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame with one row per subgroup, containing:
+        - subgroup label
+        - RMSE
+        - MAE
+        - Count (number of samples in that subgroup)
+        Sorted by RMSE ascending.
+    """
+    df = X.copy()
+    df["_y_true"] = np.ravel(y)
+    df["_y_pred"] = pipeline.predict(X)
+    df["_abs_err"] = np.abs(df["_y_true"] - df["_y_pred"])
+
+    rows = []
+    for g, sub in df.groupby(group_col):
+        rmse = np.sqrt(mean_squared_error(sub["_y_true"], sub["_y_pred"]))
+        mae = mean_absolute_error(sub["_y_true"], sub["_y_pred"])
+        rows.append((g, rmse, mae, len(sub)))
+
+    return pd.DataFrame(rows, columns=[group_col, "RMSE", "MAE", "Count"]).sort_values("RMSE")
+
+# -------------------------------------------------------------------
+
+def summarize_group_reports(group_reports, metric="RMSE", top_n=3):
+    """
+    Summarize subgroup error reports and highlight the largest gaps.
+
+    Parameters
+    ----------
+    group_reports : dict
+        Dictionary {column_name: DataFrame} produced by evaluate_by_group.
+    metric : str
+        Either "RMSE" or "MAE" (default: "RMSE").
+    top_n : int
+        Number of groups with the largest differences to return.
+    """
+    summary = []
+    for group_col, df in group_reports.items():
+        if df.empty:
+            continue
+        min_val = df[metric].min()
+        max_val = df[metric].max()
+        gap = max_val - min_val
+        summary.append((group_col, min_val, max_val, gap))
+    
+    summary_df = (
+        pd.DataFrame(summary, columns=["Group", f"Min_{metric}", f"Max_{metric}", "Gap"])
+        .sort_values("Gap", ascending=False)
+    )
+    return summary_df.head(top_n)
+
+# -------------------------------------------------------------------
+
+def monitor_model(model, X, y, log_csv=None):
+    """Quick monitoring of model performance on a dataset."""
+    y_true = y.squeeze() if hasattr(y, "squeeze") else np.ravel(y)
+    y_pred = model.predict(X)
+
+    r2   = r2_score(y_true, y_pred)
+    mae  = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))   # version-proof
+    bias = float((y_true - y_pred).mean())
+
+    # Print report
+    print("MODEL MONITOR REPORT")
+    print(f"R²={r2:.3f} | MAE={mae:.3f} | RMSE={rmse:.3f} | Bias={bias:.3f}")
+    if r2 < 0.5:
+        print("🚨 ALERT: performance degraded.")
+    elif r2 < 0.7:
+        print("WARNING: monitor closely.")
+    else:
+        print("Model performing well!")
+
+    # Optional: append to CSV log
+    if log_csv:
+        row = {
+            "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+            "r2": r2, "mae": mae, "rmse": rmse, "bias": bias
+        }
+        try:
+            df = pd.read_csv(log_csv)
+            df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+        except Exception:
+            df = pd.DataFrame([row])
+        df.to_csv(log_csv, index=False)
+
+    return r2, mae, rmse, bias
 
 # -------------------------------------------------------------------
