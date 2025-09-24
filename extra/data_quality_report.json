@@ -1,0 +1,31 @@
+{
+  "dropped_columns": [
+    "StudentID",
+    "GradeClass"
+  ],
+  "study_time_non_numeric_coerced": 0,
+  "study_time_min": 0.001056538645936,
+  "study_time_max": 19.97809399526153,
+  "study_time_out_of_range": {
+    "count": 0,
+    "range_used": [
+      0,
+      100
+    ]
+  },
+  "gpa_non_numeric_coerced": 0,
+  "gpa_min": 0.0,
+  "gpa_max": 4.0,
+  "absences_non_numeric_coerced": 0,
+  "absences_min": 0.0,
+  "absences_max": 29.0,
+  "absences_negative_count": 0,
+  "absences_upper_outliers": 0,
+  "absences_upper_fence": 44.5,
+  "date_columns": {
+    "StudyTimeWeekly": {
+      "parse_success_rate": 1.0,
+      "future_dates": 0
+    }
+  }
+}

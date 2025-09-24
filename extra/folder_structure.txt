@@ -1,0 +1,11 @@
+student-performance-regression/
+│
+├── data/                # Raw and processed datasets
+│   ├── raw/             # Original files
+│   └── processed/       # Cleaned data
+│
+├── notebooks/           # Jupyter notebooks (EDA, modeling, evaluation)
+├── outputs/             # Predictions, metrics, visualizations
+├── src/                 # Scripts and helper functions
+├── requirements.txt     # Project dependencies
+└── README.md            # Project overview
