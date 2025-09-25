@@ -6,7 +6,7 @@
 - **k_best**: 12
 ### Test Set Metrics
 - **RMSE**: 0.2006550270306913
-- **MAE**: 0.1603578961733596
+- **MAE**: 0.16035789617335958
 - **R2**: 0.9529640058163702
 ### Features
 - **Numeric**: ['Age', 'StudyTimeWeekly', 'Absences']

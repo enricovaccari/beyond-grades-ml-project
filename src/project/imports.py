@@ -47,7 +47,7 @@ import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional, Literal
-from scipy.stats import shapiro, ttest_rel, wilcoxon
+from scipy.stats import shapiro, ttest_rel, wilcoxon, pearsonr
 
 # Scikit-learn: preprocessing & pipelines
 from sklearn.base import clone
@@ -104,7 +104,7 @@ utils          = _try_import("utils",         UTILS_PATH)
 # ---------------------------------------------------------
 __all__ = [
     # libs
-    "pd", "np", "sns", "plt", "json", "joblib", "warnings", "datetime", "math",
+    "pd", "np", "sns", "plt", "json", "joblib", "warnings", "datetime",
     # sklearn preprocessing
     "ColumnTransformer", "Pipeline", "SimpleImputer",
     "StandardScaler", "OneHotEncoder", "SelectKBest", "f_regression",
@@ -120,7 +120,9 @@ __all__ = [
     # typing
     "List", "Dict", "Optional", "Literal",
     # scipystats
-    "shapiro", "ttest_rel", "wilcoxon",
+    "shapiro", "ttest_rel", "wilcoxon", "pearsonr",
+    # math
+    "math",
     # local modules (if available)
     "cleaning", "preprocessing", "splitting", "analysis", "utils",
     # paths
